@@ -117,8 +117,11 @@
           if (!this.response.body) {
             this.response.body = "";
           }
-          if(!this.response.responseResult.vars){
-            this.response.responseResult.vars="";
+          if (!this.response.responseResult) {
+            this.response.responseResult = {};
+          }
+          if (!this.response.responseResult.vars) {
+            this.response.responseResult.vars = "";
           }
           this.reqMessages = this.$t('api_test.request.address') + ":\n" + this.response.url + "\n" +
             this.$t('api_test.scenario.headers') + ":\n" + this.response.headers + "\n" + "Cookies :\n" +
@@ -157,7 +160,7 @@
 
   .text-container .pane {
     background-color: #F5F5F5;
-    padding: 0 10px;
+  padding: 1px 0;
     height: 250px;
     overflow-y: auto;
   }

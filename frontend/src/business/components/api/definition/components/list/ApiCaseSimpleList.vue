@@ -8,117 +8,133 @@
                 class="search-input" size="small"
                 v-model="condition.name"/>
 
-      <el-table v-loading="result.loading"
+      <ms-table :data="tableData" :select-node-ids="selectNodeIds" :condition="condition" :page-size="pageSize"
+                :total="total"
+                :operators="operators"
+                :batch-operators="buttons"
+                :screenHeight="screenHeight"
+                :fields.sync="fields"
+                :field-key="tableHeaderKey"
+                @saveSortField="saveSortField"
+                operator-width="170px"
+                @refresh="initTable"
                 ref="caseTable"
-                border
-                :data="tableData" row-key="id" class="test-content adjust-table ms-select-all-fixed"
-                @select-all="handleSelectAll"
-                @filter-change="filter"
-                @sort-change="sort"
-                @header-dragend="headerDragend"
-                @select="handleSelect" :height="screenHeight">
-
-        <el-table-column type="selection" width="50"/>
-
-        <ms-table-header-select-popover v-show="total>0"
-                                        :page-size="pageSize>total?total:pageSize"
-                                        :total="total"
-                                        :select-data-counts="selectDataCounts"
-                                        @selectPageAll="isSelectDataAll(false)"
-                                        @selectAll="isSelectDataAll(true)"/>
-
-        <el-table-column width="30" :resizable="false" min-width="30px" align="center">
+      >
+        <ms-table-column
+          prop="deleteTime"
+          sortable
+          v-if="this.trashEnable"
+          :fields-width="fieldsWidth"
+          :label="$t('commons.delete_time')"
+          min-width="150px">
           <template v-slot:default="scope">
-            <!-- 选中后浮现提供批量操作的按钮-->
-            <show-more-btn :is-show="scope.row.showMore" :buttons="buttons" :size="selectDataCounts" v-tester/>
+            <span>{{ scope.row.deleteTime | timestampFormatDate }}</span>
           </template>
-        </el-table-column>
-        <template v-for="(item, index) in tableLabel">
-          <el-table-column v-if="item.id == 'num'" prop="num" label="ID" min-width="120px" show-overflow-tooltip
-                           :key="index">
+        </ms-table-column>
+
+        <ms-table-column
+          prop="deleteUser"
+          :fields-width="fieldsWidth"
+          v-if="this.trashEnable"
+          :label="$t('commons.delete_user')"
+          min-width="120"/>
+        <span v-for="(item) in fields" :key="item.key">
+
+          <ms-table-column
+              prop="num"
+              label="ID"
+              :field="item"
+              :fields-width="fieldsWidth"
+              min-width="80px"
+              sortable>
             <template slot-scope="scope">
-              <!-- 为只读用户的话不能编辑 -->
+              <!-- 判断为只读用户的话不可点击ID进行编辑操作 -->
               <span style="cursor:pointer" v-if="isReadOnly"> {{ scope.row.num }} </span>
-              <el-tooltip content="编辑" v-else>
+              <el-tooltip v-else content="编辑">
                 <a style="cursor:pointer" @click="handleTestCase(scope.row)"> {{ scope.row.num }} </a>
               </el-tooltip>
             </template>
-          </el-table-column>
+          </ms-table-column>
 
-          <el-table-column v-if="item.id == 'name'" prop="name" min-width="160px" :label="$t('test_track.case.name')"
-                           show-overflow-tooltip :key="index"/>
+          <ms-table-column
+            :field="item"
+            :fields-width="fieldsWidth"
+            prop="name"
+            min-width="160px"
+            :label="$t('test_track.case.name')"/>
 
-          <el-table-column
-            v-if="item.id == 'priority'"
-            prop="priority"
-            :filters="priorityFilters"
-            column-key="priority"
-            min-width="120px"
-            :label="$t('test_track.case.priority')"
-            show-overflow-tooltip
-            :key="index">
+          <ms-table-column
+              prop="priority"
+              :filters="priorityFilters"
+              :field="item"
+              :fields-width="fieldsWidth"
+              min-width="120px"
+              :label="$t('test_track.case.priority')">
             <template v-slot:default="scope">
               <priority-table-item :value="scope.row.priority"/>
             </template>
-          </el-table-column>
+          </ms-table-column>
 
-          <el-table-column
-            v-if="item.id == 'path'"
-            sortable="custom"
-            prop="path"
-            min-width="180px"
-            :label="$t('api_test.definition.api_path')"
-            show-overflow-tooltip
-            :key="index"/>
+          <ms-table-column
+              sortable="custom"
+              prop="path"
+              min-width="180px"
+              :field="item"
+              :fields-width="fieldsWidth"
+              :label="'API'+ $t('api_test.definition.api_path')"/>
 
-          <el-table-column v-if="item.id=='tags'" prop="tags" min-width="120px" :label="$t('commons.tag')"
-                           :key="index">
+          <ms-table-column
+              sortable="custom"
+              prop="casePath"
+              min-width="180px"
+              :field="item"
+              :fields-width="fieldsWidth"
+              :label="$t('api_test.definition.request.case')+ $t('api_test.definition.api_path')"/>
+
+          <ms-table-column v-if="item.id=='tags'" prop="tags" width="120px" :label="$t('commons.tag')">
             <template v-slot:default="scope">
               <ms-tag v-for="(itemName,index)  in scope.row.tags" :key="index" type="success" effect="plain"
                       :content="itemName" style="margin-left: 0px; margin-right: 2px"/>
             </template>
-          </el-table-column>
+          </ms-table-column>
 
-          <el-table-column
-            v-if="item.id=='createUser'"
-            prop="createUser"
-            :label="'创建人'"
-            show-overflow-tooltip
-            :key="index"/>
+          <ms-table-column
+              prop="createUser"
+              :field="item"
+              :fields-width="fieldsWidth"
+              :label="'创建人'"/>
 
-          <el-table-column
-            v-if="item.id=='updateTime'"
-            sortable="updateTime"
-            min-width="160"
-            :label="$t('api_test.definition.api_last_time')"
-            prop="updateTime"
-            :key="index">
+          <ms-table-column
+              sortable="updateTime"
+              min-width="160px"
+              :field="item"
+              :fields-width="fieldsWidth"
+              :label="$t('api_test.definition.api_last_time')"
+              prop="updateTime">
             <template v-slot:default="scope">
               <span>{{ scope.row.updateTime | timestampFormatDate }}</span>
             </template>
-          </el-table-column>
+          </ms-table-column>
+          <ms-table-column prop="createTime"
+                           :field="item"
+                           :fields-width="fieldsWidth"
+                           :label="$t('commons.create_time')"
+                           sortable
+                           min-width="180px">
+            <template v-slot:default="scope">
+              <span>{{ scope.row.createTime | timestampFormatDate }}</span>
+            </template>
+          </ms-table-column >
+        </span>
+
+        <template v-if="!trashEnable" v-slot:opt-behind="scope">
+          <ms-api-case-table-extend-btns @showCaseRef="showCaseRef"
+                                         @showEnvironment="showEnvironment"
+                                         @createPerformance="createPerformance" :row="scope.row"/>
         </template>
-        <el-table-column fixed="right" v-if="!isReadOnly" :label="$t('commons.operating')" min-width="160"
-                         align="center">
-          <template slot="header">
-            <header-label-operate @exec="customHeader"/>
-          </template>
-          <template v-slot:default="scope">
-            <ms-table-operator-button class="run-button" :is-tester-permission="true"
-                                      :tip="$t('api_test.automation.execute')"
-                                      icon="el-icon-video-play"
-                                      @exec="runTestCase(scope.row)"/>
-            <ms-table-operator-button :tip="$t('commons.edit')" icon="el-icon-edit" @exec="handleTestCase(scope.row)"
-                                      v-tester/>
-            <ms-table-operator-button :tip="$t('commons.delete')" icon="el-icon-delete" @exec="handleDelete(scope.row)"
-                                      type="danger" v-tester/>
-            <ms-api-case-table-extend-btns @showCaseRef="showCaseRef" @showEnvironment="showEnvironment"
-                                           @createPerformance="createPerformance" :row="scope.row" v-tester/>
-          </template>
-        </el-table-column>
-      </el-table>
-      <header-custom ref="headerCustom" :initTableData="initTable" :optionalFields=headerItems
-                     :type=type></header-custom>
+
+      </ms-table>
+
       <ms-table-pagination :change="initTable" :current-page.sync="currentPage" :page-size.sync="pageSize"
                            :total="total"/>
     </div>
@@ -139,6 +155,8 @@
 
 <script>
 
+import MsTable from "@/business/components/common/components/table/MsTable";
+import MsTableColumn from "@/business/components/common/components/table/MsTableColumn";
 import MsTableOperator from "../../../../common/components/MsTableOperator";
 import MsTableOperatorButton from "../../../../common/components/MsTableOperatorButton";
 import MsTablePagination from "../../../../common/pagination/TablePagination";
@@ -151,7 +169,7 @@ import ShowMoreBtn from "../../../../track/case/components/ShowMoreBtn";
 import MsBatchEdit from "../basis/BatchEdit";
 import {API_METHOD_COLOUR, CASE_PRIORITY, DUBBO_METHOD, REQ_METHOD, SQL_METHOD, TCP_METHOD} from "../../model/JsonData";
 
-import {getBodyUploadFiles} from "@/common/js/utils";
+import {getBodyUploadFiles, getCurrentProjectID} from "@/common/js/utils";
 import PriorityTableItem from "../../../../track/common/tableItems/planview/PriorityTableItem";
 import MsApiCaseTableExtendBtns from "../reference/ApiCaseTableExtendBtns";
 import MsReferenceView from "../reference/ReferenceView";
@@ -162,17 +180,19 @@ import {parseEnvironment} from "@/business/components/api/test/model/Environment
 import MsTableHeaderSelectPopover from "@/business/components/common/components/table/MsTableHeaderSelectPopover";
 import MsTableAdvSearchBar from "@/business/components/common/components/search/MsTableAdvSearchBar";
 import {API_CASE_CONFIGS} from "@/business/components/common/components/search/search-components";
-import {_filter, _handleSelect, _handleSelectAll, _sort, getLabel} from "@/common/js/tableUtils";
+import {
+  _filter,
+  _sort,
+  getCustomTableHeader,
+  getCustomTableWidth,saveLastTableSortField,getLastTableSortField
+} from "@/common/js/tableUtils";
 import {API_CASE_LIST} from "@/common/js/constants";
-import {Api_Case_List} from "@/business/components/common/model/JsonData";
-import HeaderCustom from "@/business/components/common/head/HeaderCustom";
 import HeaderLabelOperate from "@/business/components/common/head/HeaderLabelOperate";
 
 export default {
   name: "ApiCaseSimpleList",
   components: {
     HeaderLabelOperate,
-    HeaderCustom,
     MsTableHeaderSelectPopover,
     MsSetEnvironment,
     ApiCaseList,
@@ -188,13 +208,16 @@ export default {
     MsBatchEdit,
     MsApiCaseTableExtendBtns,
     MsReferenceView,
-    MsTableAdvSearchBar
+    MsTableAdvSearchBar,
+    MsTable,
+    MsTableColumn
   },
   data() {
     return {
       type: API_CASE_LIST,
-      headerItems: Api_Case_List,
-      tableLabel: [],
+      tableHeaderKey:"API_CASE",
+      fields: getCustomTableHeader('API_CASE'),
+      fieldsWidth: getCustomTableWidth('API_CASE'),
       condition: {
         components: API_CASE_CONFIGS
       },
@@ -202,12 +225,48 @@ export default {
       result: {},
       moduleId: "",
       selectDataRange: "all",
-      deletePath: "/test/case/delete",
-      selectRows: new Set(),
       clickRow: {},
-      buttons: [
-        {name: this.$t('api_test.definition.request.batch_delete'), handleClick: this.handleDeleteBatch},
+      buttons: [],
+      simpleButtons: [
+        {name: this.$t('api_test.definition.request.batch_delete'), handleClick: this.handleDeleteToGcBatch},
         {name: this.$t('api_test.definition.request.batch_edit'), handleClick: this.handleEditBatch}
+      ],
+      trashButtons: [
+        {name: this.$t('commons.reduction'), handleClick: this.handleBatchRestore},
+        {name: this.$t('api_test.definition.request.batch_delete'), handleClick: this.handleDeleteBatch},
+      ],
+      operators: [],
+      simpleOperators: [
+        {
+          tip: this.$t('api_test.automation.execute'),
+          icon: "el-icon-video-play",
+          exec: this.runTestCase,
+          class: "run-button",
+          permissions: ['PROJECT_API_DEFINITION:READ+RUN']
+        },
+        {
+          tip: this.$t('commons.edit'),
+          icon: "el-icon-edit",
+          exec: this.handleTestCase,
+          permissions: ['PROJECT_API_DEFINITION:READ+EDIT_CASE']
+        },
+        {
+          tip: this.$t('commons.delete'),
+          exec: this.deleteToGc,
+          icon: "el-icon-delete",
+          type: "danger",
+          permissions: ['PROJECT_API_DEFINITION:READ+DELETE_CASE']
+        },
+      ],
+      trashOperators: [
+        {tip: this.$t('commons.reduction'), icon: "el-icon-refresh-left", exec: this.reduction},
+        {
+          tip: this.$t('commons.delete'),
+          exec: this.handleDelete,
+          icon: "el-icon-delete",
+          type: "danger",
+          permissions: ['PROJECT_API_DEFINITION:READ+DELETE_CASE']
+        },
       ],
       typeArr: [
         {id: 'priority', name: this.$t('test_track.case.priority')},
@@ -229,7 +288,7 @@ export default {
       currentPage: 1,
       pageSize: 10,
       total: 0,
-      screenHeight: document.documentElement.clientHeight - 330,//屏幕高度
+      screenHeight: 'calc(100vh - 250px)',//屏幕高度
       environmentId: undefined,
       selectAll: false,
       unSelection: [],
@@ -267,10 +326,23 @@ export default {
     planId: String
   },
   created: function () {
+    let orderArr = this.getSortField();
+    if(orderArr){
+      this.condition.orders = orderArr;
+    }
+
+    if(this.trashEnable){
+      this.operators = this.trashOperators;
+      this.buttons = this.trashButtons;
+    }else {
+      this.operators = this.simpleOperators;
+      this.buttons = this.simpleButtons;
+    }
+
     this.initTable();
-    this.$nextTick(() => {
-      this.$refs.caseTable.bodyWrapper.scrollTop = 5
-    })
+    // this.$nextTick(() => {
+    //   this.$refs.caseTable.bodyWrapper.scrollTop = 5
+    // })
   },
   watch: {
     selectNodeIds() {
@@ -286,6 +358,13 @@ export default {
       this.initTable();
     },
     trashEnable() {
+      if(this.trashEnable){
+        this.operators = this.trashOperators;
+        this.buttons = this.trashButtons;
+      }else {
+        this.operators = this.simpleOperators;
+        this.buttons = this.simpleButtons;
+      }
       if (this.trashEnable) {
         this.selectAll = false;
         this.unSelection = [];
@@ -300,23 +379,44 @@ export default {
   computed: {
     // 接口定义用例列表
     isApiModel() {
-      return this.model === 'api'
+      return this.model === 'api';
     },
     projectId() {
-      return this.$store.state.projectId
+      return getCurrentProjectID();
     },
+    selectRows() {
+      return this.$refs.caseTable.getSelectRows();
+    }
   },
   methods: {
     customHeader() {
-      this.$refs.headerCustom.open(this.tableLabel)
+      this.$refs.caseTable.openCustomHeader();
     },
     initTable() {
-      this.selectRows = new Set();
+      if (this.$refs.caseTable) {
+        this.$refs.caseTable.clearSelectRows();
+      }
       this.condition.status = "";
       this.condition.moduleIds = this.selectNodeIds;
       if (this.trashEnable) {
-        this.condition.status = "Trash";
+        // this.condition.status = "Trash";
         this.condition.moduleIds = [];
+        if(this.condition.filters){
+          if(this.condition.filters.status){
+            this.condition.filters.status = ["Trash"];
+          }else{
+            this.condition.filters = {status: ["Trash"]};
+          }
+        }else{
+          this.condition.filters = {};
+          this.condition.filters = {status: ["Trash"]};
+        }
+      }else {
+        if(this.condition.filters){
+          if(this.condition.filters.status){
+            this.condition.filters.status = [];
+          }
+        }
       }
       if (!this.selectAll) {
         this.selectAll = false;
@@ -338,7 +438,7 @@ export default {
       } else if (this.selectDataRange != null) {
         let selectParamArr = this.selectDataRange.split("single:");
 
-        if (selectParamArr.length == 2) {
+        if (selectParamArr.length === 2) {
           this.condition.id = selectParamArr[1];
         }
       }
@@ -359,45 +459,16 @@ export default {
 
           this.$nextTick(function () {
             if (this.$refs.caseTable) {
-              setTimeout(this.$refs.caseTable.doLayout, 200);
+              this.$refs.caseTable.doLayout();
+              this.$refs.caseTable.checkTableRowIsSelect();
             }
-            this.checkTableRowIsSelect();
           })
         });
-      }
-      getLabel(this, API_CASE_LIST);
-
-    },
-    checkTableRowIsSelect() {
-      //如果默认全选的话，则选中应该选中的行
-      if (this.selectAll) {
-        let unSelectIds = this.unSelection;
-        this.tableData.forEach(row => {
-          if (unSelectIds.indexOf(row.id) < 0) {
-            this.$refs.caseTable.toggleRowSelection(row, true);
-
-            //默认全选，需要把选中对行添加到selectRows中。不然会影响到勾选函数统计
-            if (!this.selectRows.has(row)) {
-              this.$set(row, "showMore", true);
-              this.selectRows.add(row);
-            }
-          } else {
-            //不勾选的行，也要判断是否被加入了selectRow中。加入了的话就去除。
-            if (this.selectRows.has(row)) {
-              this.$set(row, "showMore", false);
-              this.selectRows.delete(row);
-            }
-          }
-        })
       }
     },
 
     open() {
       this.$refs.searchBar.open();
-    },
-    handleSelect(selection, row) {
-      _handleSelect(this, selection, row, this.selectRows);
-      this.selectRowsCount(this.selectRows)
     },
     showExecResult(row) {
       this.visible = false;
@@ -414,12 +485,6 @@ export default {
       }
       _sort(column, this.condition);
       this.initTable();
-    },
-    handleSelectAll(selection) {
-      _handleSelectAll(this, selection, this.tableData, this.selectRows, this.condition);
-      this.selectRowsCount(this.selectRows)
-      _handleSelectAll(this, selection, this.tableData, this.selectRows);
-      this.selectRowsCount(this.selectRows);
     },
     search() {
       this.changeSelectDataRangeAll();
@@ -462,16 +527,8 @@ export default {
         this.$refs.caseList.open(selectApi, testCase.id);
       });
     },
-    reductionApi(row) {
-      let ids = [row.id];
-      this.$post('/api/testcase/reduction/', ids, () => {
-        this.$success(this.$t('commons.save_success'));
-        this.search();
-      });
-    },
     handleDeleteBatch() {
-      // if (this.trashEnable) {
-      this.$alert(this.$t('api_test.definition.request.delete_confirm') + "？", '', {
+      this.$alert(this.$t('api_test.definition.request.delete_case_confirm') + "？", '', {
         confirmButtonText: this.$t('commons.confirm'),
         callback: (action) => {
           if (action === 'confirm') {
@@ -482,28 +539,33 @@ export default {
             obj.ids = Array.from(this.selectRows).map(row => row.id);
             obj = Object.assign(obj, this.condition);
             this.$post('/api/testcase/deleteBatchByParam/', obj, () => {
-              this.selectRows.clear();
+              this.$refs.caseTable.clearSelectRows();
               this.initTable();
               this.$success(this.$t('commons.delete_success'));
             });
           }
         }
       });
-      // } else {
-      //   this.$alert(this.$t('api_test.definition.request.delete_confirm') + "？", '', {
-      //     confirmButtonText: this.$t('commons.confirm'),
-      //     callback: (action) => {
-      //       if (action === 'confirm') {
-      //         let ids = Array.from(this.selectRows).map(row => row.id);
-      //         this.$post('/api/testcase/removeToGc/', ids, () => {
-      //           this.selectRows.clear();
-      //           this.initTable();
-      //           this.$success(this.$t('commons.delete_success'));
-      //         });
-      //       }
-      //     }
-      //   });
-      // }
+    },
+    handleDeleteToGcBatch() {
+      this.$alert(this.$t('api_test.definition.request.delete_case_confirm') + "？", '', {
+        confirmButtonText: this.$t('commons.confirm'),
+        callback: (action) => {
+          if (action === 'confirm') {
+            let obj = {};
+            obj.projectId = this.projectId;
+            obj.selectAllDate = this.selectAll;
+            obj.unSelectIds = this.unSelection;
+            obj.ids = Array.from(this.selectRows).map(row => row.id);
+            obj = Object.assign(obj, this.condition);
+            this.$post('/api/testcase/deleteToGcByParam/', obj, () => {
+              this.$refs.caseTable.clearSelectRows();
+              this.initTable();
+              this.$success(this.$t('commons.delete_success'));
+            });
+          }
+        }
+      });
     },
     handleEditBatch() {
       if (this.currentProtocol == 'HTTP') {
@@ -533,8 +595,7 @@ export default {
       });
     },
     handleDelete(apiCase) {
-      // if (this.trashEnable) {
-      this.$alert(this.$t('api_test.definition.request.delete_confirm') + ' ' + apiCase.name + " ？", '', {
+      this.$alert(this.$t('api_test.definition.request.delete_case_confirm') + ' ' + apiCase.name + " ？", '', {
         confirmButtonText: this.$t('commons.confirm'),
         callback: (action) => {
           if (action === 'confirm') {
@@ -546,6 +607,66 @@ export default {
         }
       });
       return;
+    },
+    deleteToGc(apiCase){
+      this.$alert(this.$t('api_test.definition.request.delete_case_confirm') + ' ' + apiCase.name + " ？", '', {
+        confirmButtonText: this.$t('commons.confirm'),
+        callback: (action) => {
+          if (action === 'confirm') {
+            this.$get('/api/testcase/deleteToGc/' + apiCase.id, () => {
+              this.$success(this.$t('commons.delete_success'));
+              this.initTable();
+            });
+          }
+        }
+      });
+      return;
+    },
+    reduction(row) {
+      let tmp = JSON.parse(JSON.stringify(row));
+      let rows = {ids: [tmp.id]};
+      this.$post('/api/testcase/reduction/', rows, response => {
+        let cannotReductionApiNameArr = response.data;
+        if(cannotReductionApiNameArr.length > 0){
+          let apiNames = "";
+          cannotReductionApiNameArr.forEach(item => {
+            if(apiNames === ""){
+              apiNames+= item
+            }else{
+              apiNames+= ";"+item;
+            }
+          });
+          this.$error("请先恢复["+apiNames+"]接口");
+        }else{
+          this.$success(this.$t('commons.save_success'));
+        }
+        this.search();
+      });
+    },
+    handleBatchRestore() {
+      let obj = {};
+      obj.projectId = this.projectId;
+      obj.selectAllDate = this.selectAll;
+      obj.unSelectIds = this.unSelection;
+      obj.ids = Array.from(this.selectRows).map(row => row.id);
+      obj = Object.assign(obj, this.condition);
+      this.$post('/api/testcase/reduction/', obj, response => {
+        let cannotReductionApiNameArr = response.data;
+        if(cannotReductionApiNameArr.length > 0){
+          let apiNames = "";
+          cannotReductionApiNameArr.forEach(item => {
+            if(apiNames === ""){
+              apiNames+= item
+            }else{
+              apiNames+= ";"+item;
+            }
+          });
+          this.$error("请先恢复["+apiNames+"]接口");
+        }else{
+          this.$success(this.$t('commons.save_success'));
+        }
+        this.search();
+      });
     },
     setEnvironment(data) {
       this.environmentId = data.id;
@@ -560,14 +681,6 @@ export default {
         this.selectDataCounts = this.total - this.unSelection.length;
       } else {
         this.selectDataCounts = selection.size;
-      }
-    },
-    isSelectDataAll(dataType) {
-      this.selectAll = dataType;
-      this.selectRowsCount(this.selectRows)
-      //如果已经全选，不需要再操作了
-      if (this.selectRows.size != this.tableData.length) {
-        this.$refs.caseTable.toggleAllSelection(true);
       }
     },
     //判断是否只显示本周的数据。  从首页跳转过来的请求会带有相关参数
@@ -617,6 +730,21 @@ export default {
       column.width = finalWidth;
       column.realWidth = finalWidth;
     },
+    saveSortField(key,orders){
+      saveLastTableSortField(key,JSON.stringify(orders));
+    },
+    getSortField(){
+      let orderJsonStr = getLastTableSortField(this.tableHeaderKey);
+      let returnObj = null;
+      if(orderJsonStr){
+        try {
+          returnObj = JSON.parse(orderJsonStr);
+        }catch (e){
+          return null;
+        }
+      }
+      return returnObj;
+    },
     createPerformance(row, environment) {
       /**
        * 思路：调用后台创建性能测试的方法，把当前案例的hashTree在后台转化为jmx并文件创建性能测试。
@@ -634,6 +762,9 @@ export default {
       row.request = JSON.parse(row.request);
       row.request.name = row.id;
       row.request.useEnvironment = environment.id;
+      let map = new Map;
+      map.set(row.projectId,environment.id);
+      row.environmentMap = map;
       runData.push(row.request);
       /*触发执行操作*/
       let testPlan = new TestPlan();
@@ -712,11 +843,4 @@ export default {
   top: -2px;
 }
 
-/deep/ .el-table__fixed {
-  height: 100% !important;
-}
-
-/deep/ .el-table__fixed-body-wrapper {
-  top: 60px !important;
-}
 </style>

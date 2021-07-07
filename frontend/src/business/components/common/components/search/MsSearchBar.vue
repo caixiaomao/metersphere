@@ -1,13 +1,15 @@
 <template>
     <el-input class="ms-search-bar" :placeholder="$t('test_track.module.search')" v-model="condition.filterText" size="small">
-      <template v-slot:append>
+      <template v-if="showOperator" v-slot:append>
         <el-dropdown>
           <el-button type="primary">
             <span class="tip-font">{{ $t('commons.more_operator') }}</span>
             <i class="el-icon-arrow-down el-icon--right"/>
           </el-button>
           <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item v-for="(item, index) in commands" :key="index" @click.native.stop="click(item)">
+            <el-dropdown-item v-for="(item, index) in commands" :key="index" @click.native.stop="click(item)"
+                              v-permission="item.permissions"
+            >
              <span class="tip-font" v-if="!item.children">
                {{ item.label }}
              </span>
@@ -35,7 +37,11 @@
 </template>
 
 <script>
+
+import moduleTrashButton from "@/business/components/api/definition/components/module/ModuleTrashButton";
+
 export default {
+  components:{moduleTrashButton},
   name: "MsSearchBar",
   props: {
     condition: {
@@ -44,6 +50,7 @@ export default {
         return {}
       }
     },
+    showOperator: Boolean,
     commands: {
       type: Array,
       default() {
@@ -61,7 +68,7 @@ export default {
       if (item.callback) {
         item.callback();
       }
-    }
+    },
   }
 }
 </script>

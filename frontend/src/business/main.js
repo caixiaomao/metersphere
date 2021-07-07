@@ -11,7 +11,7 @@ import YanProgress from 'yan-progress';
 import './permission' // permission control
 import i18n from "../i18n/i18n";
 import store from "../store";
-import {permission, roles, tester, xpack} from './permission'
+import {permission, roles, tester, xpack, modules} from './permission';
 import chart from "../common/js/chart";
 import CalendarHeatmap from "../common/js/calendar-heatmap";
 import '../common/css/menu-header.css';
@@ -23,6 +23,11 @@ import JsonSchemaEditor from './components/common/json-schema/schema/index';
 import JSONPathPicker from 'vue-jsonpath-picker';
 import VueClipboard from 'vue-clipboard2'
 import vueMinderEditor from 'vue-minder-editor-plus'
+
+import mavonEditor from 'mavon-editor'
+import 'mavon-editor/dist/css/index.css'
+Vue.use(mavonEditor)
+
 Vue.use(vueMinderEditor)
 
 Vue.use(JsonSchemaEditor);
@@ -53,7 +58,7 @@ Vue.directive('roles', roles);
 
 Vue.directive('xpack', xpack);
 
-Vue.directive('tester', tester);
+Vue.directive('modules', modules);
 
 //支持左右拖拽
 Vue.directive('left-to-right-drag', left2RightDrag);
@@ -71,7 +76,10 @@ Vue.directive('preventReClick', {
       }
     })
   }
-})
+});
+
+// 添加全局事件总线
+Vue.prototype.$EventBus = new Vue();
 
 new Vue({
   el: '#app',

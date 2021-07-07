@@ -1,31 +1,6 @@
 <template>
   <ms-container>
-    <el-header height="0">
-      <div style="float: right">
-        <div v-if="tipsType==='1'">
-          🤔️ 天凉了，保温杯买了吗？
-        </div>
-        <div v-else-if="tipsType==='2'">
-          😔 觉得MeterSphere不好用就来
-          <el-link href="https://github.com/metersphere/metersphere/issues" target="_blank" style="color: black"
-                   type="primary">https://github.com/metersphere/metersphere/issues
-          </el-link>
-          吐个槽吧！
-        </div>
-        <div v-else-if="tipsType==='3'">
-          😄 觉得MeterSphere好用就来
-          <el-link href="https://github.com/metersphere/metersphere" target="_blank" style="color: black"
-                   type="primary">https://github.com/metersphere/metersphere
-          </el-link>
-          点个star吧！
-        </div>
-        <div v-else>
-          😊 MeterSphere温馨提醒 —— 多喝热水哟！
-        </div>
-      </div>
-    </el-header>
     <ms-main-container v-loading="result.loading">
-      <el-row :gutter="0"></el-row>
       <el-row :gutter="10">
         <el-col :span="6">
           <ms-api-info-card @redirectPage="redirectPage" :api-count-data="apiCountData"/>
@@ -85,6 +60,7 @@ export default {
       interfaceCoverage: "waitting...",
       tipsType: "1",
       result: {},
+      seasonTips: "😊 MeterSphere温馨提醒 —— 多喝热水哟！",
     }
   },
   activated() {
@@ -97,8 +73,15 @@ export default {
     checkTipsType() {
       var random = Math.floor(Math.random() * (4 - 1 + 1)) + 1;
       this.tipsType = random + "";
-    },
 
+      let today = new Date();
+      let month = today.getMonth();
+      if (9 > month > 4) {
+        this.seasonTips = "🤔️ 天凉了，保温杯买了吗？";
+      } else {
+        this.seasonTips = "🤔️天热了，小风扇买了吗？";
+      }
+    },
     search() {
       let selectProjectId = getCurrentProjectID();
 
